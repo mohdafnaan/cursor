@@ -1,0 +1,11 @@
+{
+  "name": "focusflow-root",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix saas-dashboard run dev",
+    "build": "npm --prefix saas-dashboard run build",
+    "start": "npm --prefix saas-dashboard run start",
+    "lint": "npm --prefix saas-dashboard run lint"
+  }
+}
+

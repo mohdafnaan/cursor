@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FocusList — Modern Todo Dashboard</title>
+
+    <!-- Tailwind CSS via CDN for rapid prototyping and production-ready utility classes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Tailwind design tokens and brand palette configured here so
+      // the rest of the UI can stay declarative using utility classes.
+      tailwind.config = {
+        darkMode: ["class"],
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                50: "#eff6ff",
+                100: "#dbeafe",
+                200: "#bfdbfe",
+                300: "#93c5fd",
+                400: "#60a5fa",
+                500: "#3b82f6",
+                600: "#2563eb",
+                700: "#1d4ed8",
+                800: "#1e40af",
+                900: "#1e3a8a"
+              },
+              surface: {
+                DEFAULT: "#ffffff",
+                muted: "#f3f4f6"
+              },
+              border: {
+                subtle: "#e5e7eb"
+              }
+            },
+            boxShadow: {
+              card: "0 18px 45px rgba(15, 23, 42, 0.08)"
+            },
+            borderRadius: {
+              card: "18px"
+            },
+            fontFamily: {
+              sans: [
+                "system-ui",
+                "-apple-system",
+                "BlinkMacSystemFont",
+                "'SF Pro Text'",
+                "Segoe UI",
+                "Roboto",
+                "Helvetica Neue",
+                "Arial",
+                "sans-serif"
+              ]
+            }
+          }
+        }
+      };
+    </script>
+
+    <!-- Custom tweaks on top of Tailwind -->
+    <link rel="stylesheet" href="./styles/custom.css" />
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased dark:bg-slate-950 dark:text-slate-50">
+    <!-- App Shell -->
+    <div
+      class="min-h-screen flex flex-col items-center px-4 py-6 sm:py-10 bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900"
+    >
+      <!-- Top App Bar -->
+      <header
+        class="w-full max-w-4xl flex items-center justify-between mb-6 sm:mb-10"
+        aria-label="Application header"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="h-9 w-9 rounded-2xl bg-brand-600 text-white flex items-center justify-center shadow-md"
+            aria-hidden="true"
+          >
+            <span class="font-semibold text-lg">F</span>
+          </div>
+          <div>
+            <h1 class="text-xl sm:text-2xl font-semibold tracking-tight">
+              FocusList
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              A modern, minimal todo dashboard for deep work.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+          <button
+            id="theme-toggle"
+            type="button"
+            class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-medium text-slate-600 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 transition"
+            aria-label="Toggle color theme"
+            aria-pressed="false"
+          >
+            <span data-theme-icon aria-hidden="true">☀️</span>
+            <span data-theme-label class="hidden sm:inline">Light</span>
+          </button>
+          <span
+            id="app-date"
+            class="inline-flex items-center gap-1 rounded-full bg-white/70 px-3 py-1 border border-slate-200 shadow-sm dark:bg-slate-800/80 dark:border-slate-700"
+          >
+            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+            <span>Today</span>
+          </span>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main
+        class="w-full max-w-4xl flex-1 flex flex-col gap-4 sm:gap-6 mb-10"
+        aria-label="Todo dashboard"
+      >
+        <!-- Status / Alerts -->
+        <section
+          id="app-alert"
+          class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-sm dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-100"
+          role="alert"
+          aria-live="polite"
+        >
+          <!-- Filled dynamically when storage errors or other non-blocking issues occur -->
+        </section>
+
+        <!-- Primary Card -->
+        <section
+          class="bg-surface rounded-card border border-slate-100 shadow-card p-4 sm:p-6 md:p-7 flex flex-col gap-5 sm:gap-6 dark:bg-slate-900 dark:border-slate-800"
+          aria-label="Todo workspace"
+        >
+          <!-- Top Row: Input + Meta -->
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <!-- Add Todo Form -->
+            <form
+              id="todo-form"
+              class="flex-1 flex flex-col gap-2"
+              aria-label="Add a new todo"
+            >
+              <label
+                for="todo-input"
+                class="text-xs font-medium text-slate-500 tracking-wide uppercase"
+              >
+                New task
+              </label>
+              <div
+                class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/60 px-2 py-1.5 focus-within:ring-2 focus-within:ring-brand-500 focus-within:ring-offset-2 focus-within:ring-offset-surface transition-shadow dark:border-slate-700 dark:bg-slate-800/80"
+              >
+                <input
+                  id="todo-input"
+                  name="title"
+                  type="text"
+                  required
+                  autocomplete="off"
+                  placeholder="Capture the next thing you’ll complete..."
+                  class="flex-1 bg-transparent border-none outline-none text-sm sm:text-base placeholder:text-slate-400 px-2 py-1"
+                  aria-label="Todo title"
+                />
+                <button
+                  type="submit"
+                  class="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 text-white text-sm font-medium px-3 py-1.5 sm:px-4 sm:py-2 shadow-sm hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <span class="hidden sm:inline">Add task</span>
+                  <span class="sm:hidden">Add</span>
+                  <span aria-hidden="true" class="text-base leading-none">＋</span>
+                </button>
+              </div>
+              <p class="text-xs text-slate-400 dark:text-slate-500">
+                Press <kbd class="kbd">Enter</kbd> to add quickly.
+              </p>
+            </form>
+
+            <!-- Stats -->
+            <div
+              class="flex flex-row sm:flex-col gap-3 items-end sm:items-end justify-between sm:justify-start text-xs sm:text-sm min-w-[180px]"
+              aria-label="Todo statistics"
+            >
+              <div class="flex flex-col items-end sm:items-start gap-1">
+                <span class="text-slate-400 dark:text-slate-500 uppercase tracking-wide text-[11px]">
+                  Today’s focus
+                </span>
+                <div class="flex items-center gap-2">
+                  <span
+                    id="counter-active"
+                    class="inline-flex items-center justify-center rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 px-2.5 py-1 text-xs font-semibold dark:bg-emerald-900/40 dark:border-emerald-800 dark:text-emerald-200"
+                    aria-label="Active tasks"
+                  >
+                    0 active
+                  </span>
+                  <span
+                    id="counter-completed"
+                    class="inline-flex items-center justify-center rounded-full bg-slate-50 text-slate-500 border border-slate-200 px-2.5 py-1 text-xs font-medium dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+                    aria-label="Completed tasks"
+                  >
+                    0 done
+                  </span>
+                </div>
+              </div>
+
+              <button
+                id="clear-completed"
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface transition disabled:opacity-60 disabled:cursor-not-allowed dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+              >
+                <span class="h-1.5 w-1.5 rounded-full bg-slate-300"></span>
+                <span>Clear completed</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Toolbar: Filters + Search -->
+          <div
+            class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-slate-100 pt-4 mt-1"
+          >
+            <!-- Filter "tabs" (shadcn/ui-like) -->
+            <div
+              class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50/80 p-1 text-xs shadow-inner dark:border-slate-700 dark:bg-slate-800/80"
+              role="tablist"
+              aria-label="Filter todos"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected="true"
+                data-filter="all"
+                class="filter-tab inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium text-slate-700 bg-white shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1 dark:bg-slate-900 dark:text-slate-100"
+              >
+                <span class="h-1.5 w-1.5 rounded-full bg-brand-500"></span>
+                <span>All</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected="false"
+                data-filter="active"
+                class="filter-tab inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 hover:bg-white/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1 dark:text-slate-300 dark:hover:text-slate-50"
+              >
+                <span class="h-1.5 w-1.5 rounded-full bg-amber-400"></span>
+                <span>Active</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected="false"
+                data-filter="completed"
+                class="filter-tab inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 hover:bg-white/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1 dark:text-slate-300 dark:hover:text-slate-50"
+              >
+                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                <span>Completed</span>
+              </button>
+            </div>
+
+            <!-- Search -->
+            <div class="w-full sm:w-64">
+              <label
+                for="todo-search"
+                class="sr-only"
+              >
+                Search todos
+              </label>
+              <div
+                class="inline-flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 focus-within:ring-2 focus-within:ring-brand-500 focus-within:ring-offset-2 focus-within:ring-offset-surface transition-shadow dark:border-slate-700 dark:bg-slate-800/80"
+              >
+                <span
+                  class="text-slate-400 text-sm"
+                  aria-hidden="true"
+                >
+                  🔍
+                </span>
+                <input
+                  id="todo-search"
+                  type="search"
+                  placeholder="Search by title..."
+                  class="flex-1 bg-transparent border-none outline-none text-xs sm:text-sm placeholder:text-slate-400 py-0.5"
+                  autocomplete="off"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Todo List -->
+          <section
+            id="todo-list-section"
+            class="mt-1"
+            aria-label="Todo list"
+          >
+            <ul
+              id="todo-list"
+              class="flex flex-col divide-y divide-slate-100 dark:divide-slate-800"
+            >
+              <!-- Tasks are rendered here by JavaScript -->
+            </ul>
+
+            <!-- Empty State -->
+            <div
+              id="empty-state"
+              class="hidden flex flex-col items-center justify-center text-center py-10 text-slate-400 dark:text-slate-500"
+              aria-live="polite"
+            >
+              <div
+                class="h-11 w-11 rounded-2xl border border-dashed border-slate-300 flex items-center justify-center mb-3 dark:border-slate-600"
+                aria-hidden="true"
+              >
+                <span class="text-lg">☀️</span>
+              </div>
+              <p class="text-sm font-medium text-slate-600 mb-1 dark:text-slate-200">
+                No tasks here yet.
+              </p>
+              <p class="text-xs text-slate-400 mb-3 dark:text-slate-500">
+                Add something small you can finish in the next 10 minutes.
+              </p>
+              <button
+                type="button"
+                id="empty-state-add"
+                class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+              >
+                <span>New task</span>
+                <span aria-hidden="true">＋</span>
+              </button>
+            </div>
+          </section>
+        </section>
+      </main>
+
+      <!-- Footer -->
+      <footer class="w-full max-w-4xl text-[11px] text-slate-400 dark:text-slate-500 mt-auto">
+        <p>
+          Built for focus-first workflows. Data is stored locally in your
+          browser (no accounts, no sync).
+        </p>
+      </footer>
+    </div>
+
+    <!-- Dialog Overlay Root (reusable for edit / delete confirmation) -->
+    <div
+      id="dialog-root"
+      class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/40 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-hidden="true"
+    >
+      <div
+        class="dialog-panel w-full max-w-md rounded-2xl bg-white shadow-xl border border-slate-100 p-5 sm:p-6 transform transition-all dark:bg-slate-900 dark:border-slate-700"
+      >
+        <div id="dialog-body">
+          <!-- Dynamic content -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Application Scripts -->
+    <script type="module" src="./src/js/app.js"></script>
+  </body>
+</html>
+
